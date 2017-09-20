@@ -82,9 +82,6 @@ def ResNet50(include_top=True, weights='imagenet',
              pooling=None):
 
 
-
-
-   
     if input_tensor is None:
         img_input = Input(shape=input_shape)
     else:
@@ -212,9 +209,6 @@ def inf_train_gen(BATCH_SIZE,directory):
         img_view1,img_view2,img_view3,_3d = batch_generator(BATCH_SIZE,directory)
         yield img_view1,img_view2,img_view3,_3d
 
-            
-            
-
 
 
 def sample_noise(batch_size):
@@ -226,13 +220,11 @@ def multiview_encoder(encoder_input1,encoder_input2,encoder_input3,encoder_input
     base = ResNet50(input_shape=(dim1,dim2,dim3))
     #base.load_weights("/home/sam/.keras/models/resnet50_weights_tf_dim_ordering_tf_kernels_notop.h5")
 
-
     process1 = base(encoder_input1)
     
     conc = concatenate([process1], axis=-1)
     
     reshape = Reshape((1,2048))(conc)#tf.reshape(conc,[-1,4,2048]) # reshape into a 200*1*1*1 array
-    
     
     view_pool = Lambda(column_max)(reshape)
     
@@ -243,115 +235,3 @@ def multiview_encoder(encoder_input1,encoder_input2,encoder_input3,encoder_input
     
     
     return z_mean,z_log_var
-
-
-
-
-
-
-
-
-
-
-
----------------------------------
-
-
-
-def ResNet50(include_top=True, weights='imagenet', input_tensor=None, input_shape=None, pooling=None, classes=1000):
-      
-      input_shape = _obtain_input_shape(input_shape, default_size=224, min_size=197, data_format=K.image_data_format(), 
-                    require_flatten=include_top, weights=weights)
-
-    if input_tensor is None:
-        img_input = Input(shape=input_shape)
-    else:
-        if not K.is_keras_tensor(input_tensor):
-            img_input = Input(tensor=input_tensor, shape=input_shape)
-        else:
-            img_input = input_tensor
-    if K.image_data_format() == 'channels_last':
-        bn_axis = 3
-    else:
-      bn_axis = 1
-
-# conv-layers
-
-    x = Conv2D(64, (7, 7), strides=(2, 2), padding='same', name='conv1')(img_input)
-    x = BatchNormalization(axis=bn_axis, name='bn_conv1')(x)
-    x = Activation('relu')(x)
-    x = MaxPooling2D((3, 3), strides=(2, 2))(x)
-
-    x = conv_block(x, 3, [64, 64, 256], stage=2, block='a', strides=(1, 1))
-    x = identity_block(x, 3, [64, 64, 256], stage=2, block='b')
-    x = identity_block(x, 3, [64, 64, 256], stage=2, block='c')
-
-    x = conv_block(x, 3, [128, 128, 512], stage=3, block='a')
-    x = identity_block(x, 3, [128, 128, 512], stage=3, block='b')
-    x = identity_block(x, 3, [128, 128, 512], stage=3, block='c')
-    x = identity_block(x, 3, [128, 128, 512], stage=3, block='d')
-
-    x = conv_block(x, 3, [256, 256, 1024], stage=4, block='a')
-    x = identity_block(x, 3, [256, 256, 1024], stage=4, block='b')
-    x = identity_block(x, 3, [256, 256, 1024], stage=4, block='c')
-    x = identity_block(x, 3, [256, 256, 1024], stage=4, block='d')
-    x = identity_block(x, 3, [256, 256, 1024], stage=4, block='e')
-    x = identity_block(x, 3, [256, 256, 1024], stage=4, block='f')
-
-    x = conv_block(x, 3, [512, 512, 2048], stage=5, block='a')
-    x = identity_block(x, 3, [512, 512, 2048], stage=5, block='b')
-    x = identity_block(x, 3, [512, 512, 2048], stage=5, block='c')
-
-    x = AveragePooling2D((7, 7), name='avg_pool')(x)
-    
-    
-    
-    if include_top:
-        x = Flatten()(x)
-        x = Dense(classes, activation='softmax', name='fc1000')(x)
-    else:
-        if pooling == 'avg':
-            x = GlobalAveragePooling2D()(x)
-        elif pooling == 'max':
-            x = GlobalMaxPooling2D()(x)
-
-    # Ensure that the model takes into account any potential predecessors of `input_tensor`.
-    if input_tensor is not None:
-        inputs = get_source_inputs(input_tensor)
-    else:
-        inputs = img_input
-    
-    # Create model.
-    model = Model(inputs, x, name='resnet50')    
-   
-    
-    # load weights
-    if weights == 'imagenet':
-        if include_top:
-            weights_path = get_file('resnet50_weights_tf_dim_ordering_tf_kernels.h5',
-                                    WEIGHTS_PATH,
-                                    cache_subdir='models',
-                                    md5_hash='a7b3fe01876f51b976af0dea6bc144eb')
-        else:
-            weights_path = get_file('resnet50_weights_tf_dim_ordering_tf_kernels_notop.h5',
-                                    WEIGHTS_PATH_NO_TOP, cache_subdir='models', md5_hash='a268eb855778b3df3c7506639542a6af')
-        model.load_weights(weights_path)
-        
-        if K.backend() == 'theano':
-            layer_utils.convert_all_kernels_in_model(model)
-            if include_top:
-                maxpool = model.get_layer(name='avg_pool')
-                shape = maxpool.output_shape[1:]
-                dense = model.get_layer(name='fc1000')
-                layer_utils.convert_dense_weights_data_format(dense, shape, 'channels_first')
-
-        if K.image_data_format() == 'channels_first' and K.backend() == 'tensorflow':
-            warnings.warn('You are using the TensorFlow backend, yet you '
-                          'are using the Theano '
-                          'image data format convention '
-                          '(`image_data_format="channels_first"`). '
-                          'For best performance, set '
-                          '`image_data_format="channels_last"` in '
-                          'your Keras config '
-                          'at ~/.keras/keras.json.')
-      return model
