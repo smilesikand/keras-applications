@@ -141,7 +141,6 @@ def ResNet50(include_top=True, weights='imagenet',
     return model
 
 
-
 def save_model_weights(encoder_model,generator_model, discriminator_model, e):
 
     model_path = "../../models/3DWGAN_airplanes1/" 
@@ -221,13 +220,7 @@ def multiview_encoder(encoder_input1,encoder_input2,encoder_input3,encoder_input
     #base.load_weights("/home/sam/.keras/models/resnet50_weights_tf_dim_ordering_tf_kernels_notop.h5")
 
     process1 = base(encoder_input1)
-    
-    conc = concatenate([process1], axis=-1)
-    
-    reshape = Reshape((1,2048))(conc)#tf.reshape(conc,[-1,4,2048]) # reshape into a 200*1*1*1 array
-    
-    view_pool = Lambda(column_max)(reshape)
-    
+        
     fc = Dense(2048,activation='relu')(view_pool)
     
     z_mean = Dense(encoding_dim, activation='relu')(fc)
