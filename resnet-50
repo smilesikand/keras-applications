@@ -137,84 +137,10 @@ def ResNet50(include_top=True, weights='imagenet',
     # Create model.
     model = Model(inputs, x, name='resnet50')
 
-
     return model
 
 
-def save_model_weights(encoder_model,generator_model, discriminator_model, e):
-
-    model_path = "../../models/3DWGAN_airplanes1/" 
-
-    if e % 25 == 0:
-        enc_weights_path = os.path.join(model_path, '%s_epoch%s.h5' % (encoder_model.name, e))
-        encoder_model.save_weights(enc_weights_path, overwrite=True)
-        
-        gen_weights_path = os.path.join(model_path, '%s_epoch%s.h5' % (generator_model.name, e))
-        generator_model.save_weights(gen_weights_path, overwrite=True)
-
-        disc_weights_path = os.path.join(model_path, '%s_epoch%s.h5' % (discriminator_model.name, e))
-        discriminator_model.save_weights(disc_weights_path, overwrite=True)
-        
-
-
-def load_image( infilename ) :
-    img = color.rgb2gray(io.imread(infilename))
-    img = transform.resize(img,(200,200)) 
-    data = np.expand_dims( img,axis=-1 )
-    
-    return data
-    
-def get_immediate_subdirectories(a_dir):
-    return [name for name in os.listdir(a_dir)
-            if os.path.isdir(os.path.join(a_dir, name))]
-
-
-def batch_generator(BATCH_SIZE,directory,train=True,views=3):
-    
-    if not train:
-        directory = directory[:-1]+"_test/"
-    dir_list = get_immediate_subdirectories(directory)
-    ids = random.sample(range(0, len(dir_list)), BATCH_SIZE)
-    img_data =[]
-    _3d_data = []
-    
-    for folder_id in ids:
-        
-        folder_path = directory+dir_list[folder_id]+'/screenshots/'
-        onlyfiles = [f for f in listdir(folder_path) if (isfile(join(folder_path, f)))]
-        
-        onlyfiles= list(filter(lambda a: (a.endswith("4.png") or a.endswith("9.png") or a.endswith("7.png")), onlyfiles))
-        
-        #print(onlyfiles)
-        img_views=[]
-        for view in xrange(views):
-            image_path = folder_path + onlyfiles[view]
-            img_views.append(load_image(image_path))
-            
-        
-        #print(image_path)
-        _3d = np.load(directory+dir_list[folder_id]+'/model.npy')
-        
-        img_data.append(img_views)
-        _3d_data.append(_3d)
-        
-    img_data =  np.asarray(img_data)
-   
-    return img_data[:,0],img_data[:,1],img_data[:,2],np.asarray(_3d_data)
-        
-
-def inf_train_gen(BATCH_SIZE,directory):
-    while True:
-        img_view1,img_view2,img_view3,_3d = batch_generator(BATCH_SIZE,directory)
-        yield img_view1,img_view2,img_view3,_3d
-
-
-
-def sample_noise(batch_size):
-
-    return np.random.normal(0,1, size=[batch_size,200,1,1,1])
-
-def multiview_encoder(encoder_input1,encoder_input2,encoder_input3,encoder_input4, encoder_input5):
+def multiview_encoder(encoder_input1):
 
     base = ResNet50(input_shape=(dim1,dim2,dim3))
     #base.load_weights("/home/sam/.keras/models/resnet50_weights_tf_dim_ordering_tf_kernels_notop.h5")
